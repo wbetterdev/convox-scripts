@@ -173,6 +173,9 @@ class OpBase < NpPaths
 
   ################ NP SERVICES ###################
   def np_service_config(name, exit_on_fail = false)
+    # TODO: remove dietbet support
+    name = name.gsub(/dietbet-/, 'wb-') unless name.eql?("dietbet-game-service")
+    
     config = np_services[dashed_app_name(name).to_sym]
     exit_with_error "NP service config for #{name} not found" unless config || !exit_on_fail
 
@@ -418,8 +421,10 @@ class OpBase < NpPaths
   private
 
   def build_service_from_config(service_data)
-    service_data[:path] ||= "#{path_wb_services}/#{service_data[:name]}"
-
+    path = service_data[:name]
+    path = path.gsub('wb-', 'dietbet/dietbet-') if  path =~ /graph|bil|user|/ 
+    service_data[:path] ||= "#{path_wb_services}/#{path}"
+    
     case service_data[:location]
     when LOCATION_CONVOX_LOCAL
       NpConvoxService.new(**service_data)

@@ -16,7 +16,7 @@ class Wbtmux < OpBase
     'auth' => 'wb-auth-service',
     'bill' => 'wb-billing-service',
     'graphql' => 'wb-graphql-service',
-    'dietbet' => 'dietbet-game-service',
+    # 'dietbet' => 'dietbet-game-service',
     'hub' => 'wb-hub',
     'admin-auth' => 'wb-admin-auth-service',
     'admin-web' => 'wb-admin-web',

@@ -12,7 +12,7 @@ class NpRailsService < NpService
   end
 
   def override_envs(environment)
-    environment.eql?('development') ? { 'RAILS_ENV' => 'development' } : {}
+    environment ? { 'RAILS_ENV' => environment } : {}
   end
 
   def prepare_local_service; end

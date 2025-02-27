@@ -110,8 +110,15 @@ class NpsEnv < OpBase
 
       next if !key || /^(_|#)/ =~ key
       next if value.nil? || value == '' 
-
+    
       env_values[key] = value
+      
+      # TODO: remove this dietbet patch
+      # duplicate WB_ env vars as DIETBET_
+      if key =~ /^WB_/
+        db_key = key.gsub(/^WB_/, 'DIETBET_')
+        env_values[db_key] ||= value
+      end 
     end
 
     env_values.sort.to_h
@@ -311,18 +318,21 @@ class NpsEnv < OpBase
       'WB_ADMIN_AUTH_SERVICE_GOOGLE_DOMAIN' => -> { np_service_external_url('wb-admin-web', domain_only: true) },
 
       'WB_NOTIFY_SERVICE_URL' => -> { np_service_internal_url('wb-notify-service') },
+      'DIETBET_NOTIFY_SERVICE_URL' => -> { np_service_internal_url('wb-notify-service') },
       'FALKOR_GAME_SERVICE_URL' => -> { np_service_internal_url('falkor-game-service') },
       'QUITBET_GAME_SERVICE_URL' => -> { np_service_internal_url('quitbet-game-service') },
       'RUNBET_GAME_SERVICE_URL' => -> { np_service_internal_url('runbet-game-service') },
       'WB_BILLING_SERVICE_URL' => -> { np_service_internal_url('wb-billing-service') },
+      'DIETBET_BILLING_SERVICE_URL' => -> { np_service_internal_url('wb-billing-service') },
       'WB_MEMBERSHIP_SERVICE_URL' => -> { np_service_internal_url('wb-membership-service') },
       # falkor needs MEMBERSHIP_SERVICE_HOST instead of WB_MEMBERSHIP_SERVICE_HOST
       'MEMBERSHIP_SERVICE_URL' => -> { np_service_internal_url('wb-membership-service') },
       'WB_METRIC_SERVICE_URL' => -> { np_service_internal_url('wb-metric-service') },
       'WB_SOCIAL_SERVICE_URL' => -> { np_service_internal_url('wb-social-service') },
       'WB_USER_SERVICE_URL' => -> { np_service_internal_url('wb-user-service') },
-
+      'DIETBET_USER_SERVICE_URL' => -> { np_service_internal_url('wb-user-service') },
       'WB_AUTH_SERVICE_URL' => -> { np_service_internal_url('wb-auth-service') },
+      'DIETBET_AUTH_SERVICE_URL' => -> { np_service_internal_url('wb-auth-service') },
       'WB_AUTH_SERVICE_EXTERNAL_URL' => -> { np_service_external_url('wb-auth-service') },
       'WB_AUTH_SERVICE_BASE_URL' => -> { np_service_external_url('wb-auth-service') }, # https://accounts-office.waybetterdev.com
       'WB_AUTH_SERVICE_DOMAIN' => -> { np_service_external_url('wb-auth-service', domain_only: true) }, # https://accounts-office.waybetterdev.com
