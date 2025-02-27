@@ -34,6 +34,7 @@ APPS = {
   'wb-billing-service' => 'wb-billing-service',
   'wb-graphql-service' => 'wb-graphql-service',
   'wb-hub' => 'wb-hub',
+  'wb-asset-service' => 'wb-asset-service',
   'wb-membership-service' => 'wb-membership-service',
   'wb-metric-service' => 'wb-metric-service',
   'wb-notify-service' => 'wb-notify-service',

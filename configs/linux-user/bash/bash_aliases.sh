@@ -46,9 +46,11 @@ alias cdhub='cd ~/Work/wb-services/wb-hub;lcd'
 alias cdgraphql='cd ~/Work/wb-services/wb-graphql-service;lcd'
 alias cdninja='cd ~/Work/wb-services/wb-admin-web;lcd'
 
+alias startemulator='emulator -avd Pixel_8_API_VanillaIceCream'
+
 alias cdmobile='cd ~/Work/mobile-apps;lcd'
 alias cdwaybettermobile='cd ~/Work/mobile-apps/waybetter-mobile;lcd'
-
+alias cdgoquitmobile='cd ~/Work/mobile-apps/go-quit;lcd'
 
 #utils
 alias notepad=sublime-text.subl
