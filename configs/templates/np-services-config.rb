@@ -15,7 +15,7 @@ class NpServices < OpBase
     'apache-waybetterdev-selfsigned' => '.waybetterdev.com',
     'apache-waybetter-selfsigned' => '.waybetter.com',
     'apache-ninja-selfsigned' => '.waybetter.ninja',
-    'apache-dietbet-selfsigned' => 'local.dietbet.com', 
+    'apache-dietbet-selfsigned' => 'local.dietbet.com',
   }
 
   SERVER_IPS = {
@@ -44,6 +44,7 @@ class NpServices < OpBase
     :member     => { name: 'wb-membership-service',  gitname: 'wb-membership-service',   type: 'ruby',        port: 3009 },
     :billing    => { name: 'wb-billing-service',     gitname: 'wb-billing-service',      type: 'ruby',        port: 3006 },
     :social     => { name: 'wb-social-service',      gitname: 'wb-social-service',       type: 'ruby',        port: 3005 },
+    :asset      => { name: 'wb-asset-service',       gitname: 'wb-asset-service',        type: 'ruby',        port: 3011 },
   }
 
   # set this to false if you don't have local convox started

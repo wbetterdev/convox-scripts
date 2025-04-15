@@ -39,6 +39,7 @@ APPS = {
   'wb-notify-service' => 'wb-notify-service',
   'wb-social-service' => 'wb-social-service',
   'wb-user-service' => 'wb-user-service',
+  'wb-asset-service' => 'wb-asset-service',
   'runbet-game-service' => 'runbet-game-service',
   'falkor-game-service' => 'falkor-game-service',
   'quitbet-game-service' => 'quitbet-game-service',
