@@ -290,7 +290,7 @@ class NpsEnv < OpBase
       'REDIS_HOST' => -> { find_local_ip },
       'REDIS_QUEUE_HOST' => -> { find_local_ip },
       'NODE_ENV' => -> { 'development' },
-      'WB_ENV' => -> { 'local' },
+      # 'WB_ENV' => -> { 'local' },
       'VERIFY_CERTS' => -> { 'false' },
       'WB_ADMIN_JWT_COOKIE' => -> { 'wb-jwt-admin-office' },
       'WB_JWT_COOKIE' => -> { 'wb-jwt-office' },
