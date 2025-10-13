@@ -90,7 +90,7 @@ class NpsEnv < OpBase
     unless opts_np_app.on_local_convox? || opts_np_app.on_local_kraken?
       exit_with_error "App `#{opts_np_app.name}` location `#{opts_np_apps.location}` not supported"
     end
-  
+
     opts_np_app.env_src_path
   end
 
@@ -109,7 +109,7 @@ class NpsEnv < OpBase
       key, value = line.gsub(/\n|\r/, '').split('=', 2)
 
       next if !key || /^(_|#)/ =~ key
-      next if value.nil? || value == '' 
+      next if value.nil? || value == ''
 
       env_values[key] = value
     end
@@ -290,7 +290,7 @@ class NpsEnv < OpBase
       'REDIS_HOST' => -> { find_local_ip },
       'REDIS_QUEUE_HOST' => -> { find_local_ip },
       'NODE_ENV' => -> { 'development' },
-      'WB_ENV' => -> { 'local' },
+      # 'WB_ENV' => -> { 'local' },
       'VERIFY_CERTS' => -> { 'false' },
       'WB_ADMIN_JWT_COOKIE' => -> { 'wb-jwt-admin-office' },
       'WB_JWT_COOKIE' => -> { 'wb-jwt-office' },
@@ -407,7 +407,11 @@ class NpsEnv < OpBase
   end
 
   def rbenv_ruby_version
-    File.read("#{opts_np_app.path}/.ruby-version")
+    begin
+      File.read("#{opts_np_app.path}/.ruby-version")
+    rescue
+      nil
+    end
   end
 
   def gemfile_ruby_version
