@@ -321,6 +321,7 @@ class NpsEnv < OpBase
       'WB_METRIC_SERVICE_URL' => -> { np_service_internal_url('wb-metric-service') },
       'WB_SOCIAL_SERVICE_URL' => -> { np_service_internal_url('wb-social-service') },
       'WB_USER_SERVICE_URL' => -> { np_service_internal_url('wb-user-service') },
+      'WB_ASSET_SERVICE_URL' => -> { np_service_internal_url('wb-asset-service') },
 
       'WB_AUTH_SERVICE_URL' => -> { np_service_internal_url('wb-auth-service') },
       'WB_AUTH_SERVICE_EXTERNAL_URL' => -> { np_service_external_url('wb-auth-service') },
