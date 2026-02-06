@@ -15,9 +15,6 @@ PATH="${PATH}:$HOME/Work/docs/scripts/ruby"
 export PATH="${PATH}:$HOME/Work/wb-services/kraken/bin"
 PATH="${PATH}:$HOME/Work/wb-services/kraken/bin"
 
-#wb-service paths
-export PATH="${PATH}:$HOME/Work/wb-services/stepbet-deploy/bin"
-PATH="${PATH}:$HOME/Work/wb-services/stepbet-deploy/bin"
 
 #mikrok8s
 # export PATH="${PATH}:/snap/bin"

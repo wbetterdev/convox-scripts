@@ -14,10 +14,10 @@ class NpsConfig < OpBase
     prepare_local_convox_services
     prepare_local_kraken_services
 
-    if opts_write
-      puts 'Rebuilding apache proxy config'
-      exec_ic_command '~/Work/docs/scripts/installs/apache-conf/build-apache-conf-and-install.sh'
-    end
+    return unless opts_write
+
+    puts 'Rebuilding apache proxy config'
+    exec_ic_command '~/Work/docs/scripts/installs/apache-conf/build-apache-conf-and-install.sh'
   end
 
   HELP = <<-BAN.freeze
@@ -70,14 +70,14 @@ class NpsConfig < OpBase
       end
     end
 
-    if opts_write
-      unchanged_apps = new_apps - apps_to_create
-      unchanged_apps.each do |app|
-        puts "Rebuilding env for #{app.green}"
-        exec_ic_command "npsenv -w -a #{app}"
-        exec_ic_command "#{path_ruby_bin}/kmd-local refresh-env -- local #{app} no-confirm"
-        exec_ic_command "#{path_ruby_bin}/kmd-local refresh-yml -- local #{app} no-confirm"
-      end
+    return unless opts_write
+
+    unchanged_apps = new_apps - apps_to_create
+    unchanged_apps.each do |app|
+      puts "Rebuilding env for #{app.green}"
+      exec_ic_command "npsenv -w -a #{app}"
+      exec_ic_command "#{path_ruby_bin}/kmd-local refresh-env -- local #{app} no-confirm"
+      exec_ic_command "#{path_ruby_bin}/kmd-local refresh-yml -- local #{app} no-confirm"
     end
   end
 

@@ -22,10 +22,8 @@ RACKS = {
 
 # expansions for apps. See comment on RACKS.
 APPS = {
-  'dietbet' => 'dietbet',
   'kraken' => 'kraken',
   'ktest' => 'kraken-test',
-  'stepbet' => 'stepbet',
   'wb-auth-service' => 'wb-auth-service',
   'auth' => 'wb-auth-service',
   'admin-auth-service' => 'wb-admin-auth-service',
@@ -42,9 +40,7 @@ APPS = {
   'wb-asset-service' => 'wb-asset-service',
   'runbet-game-service' => 'runbet-game-service',
   'falkor-game-service' => 'falkor-game-service',
-  'quitbet-game-service' => 'quitbet-game-service',
-  'dietbet-game-service' => 'dietbet-game-service',
-  'stepbet-game-service' => 'stepbet-game-service'
+  'quitbet-game-service' => 'quitbet-game-service'
 }.freeze
 
 # Commands that expand to match any of these regexes will be confirmed by
@@ -75,7 +71,7 @@ KMDS = {
   'releases' => { expanded: 'convox releases', args: %i[rack app] },
   'logs' => { expanded: 'convox logs', args: %i[rack app] },
   'ps' => { expanded: 'convox ps', args: %i[rack app] },
-  "deploy" =>        { expanded: "convox deploy", args: %i[rack app] },
+  'deploy' => { expanded: 'convox deploy', args: %i[rack app] },
   'scale' => { expanded: 'convox scale', args: %i[rack app] },
   'konnect' => { expanded: 'konnect-local', args: %i[rack app service_from_ps] },
   'watch-release' => { expanded: 'watch-release', args: %i[rack app] },
@@ -298,7 +294,7 @@ class Kmd < OpBase
 
   def choose_command
     filter = command&.split&.first
-    args = command&.split&.[](1..-1)
+    args = command&.split&.[](1..)
     cmd = KMDS[filter] if filter
 
     if cmd.nil?
@@ -354,7 +350,7 @@ class Kmd < OpBase
     return service_filter if service_filter
 
     ps_info = `convox ps --app #{app} --rack #{rack}`
-    processes = ps_info.lines[1..-1].map { |l| l.split[0..1].reverse.join(' ') }
+    processes = ps_info.lines[1..].map { |l| l.split[0..1].reverse.join(' ') }
     process = choose(msg: 'Process', field: :command, choices: processes).split
     if 'one-off'.include?(command)
       process.first
@@ -394,10 +390,10 @@ class Kmd < OpBase
     if needs_a_confirm
       msg = production? ? command.bold.red : command.green
       answer = cli.ask "#{msg} (enter 'y' to execute)"
-      go_ahead = answer =~ /^y/
+      answer =~ /^y/
     else
       puts command.yellow
-      go_ahead = true
+      true
     end
   end
 
@@ -477,5 +473,5 @@ if ['-h', '--help'].include?(ARGV.first)
 else
   no_confirm = ARGV.delete('no-confirm')
   confirm = no_confirm.nil?
-  Kmd.new(confirm: confirm).go(command: ARGV[0], args: ARGV[1..-1])
+  Kmd.new(confirm: confirm).go(command: ARGV[0], args: ARGV[1..])
 end

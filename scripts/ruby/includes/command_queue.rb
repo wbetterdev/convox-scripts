@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CommandQueue
   attr_accessor :commands, :session_name
 

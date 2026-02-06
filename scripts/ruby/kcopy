@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
 
-public
-
 require 'optparse'
 require 'open3'
 
@@ -112,10 +110,10 @@ class KCopy
 
     op.parse!(ARGV)
 
-    if app.nil?
-      info "--app not provided, using 'kraken'"
-      self.app = 'kraken'
-    end
+    return unless app.nil?
+
+    info "--app not provided, using 'kraken'"
+    self.app = 'kraken'
   end
 
   def check_for_convox
@@ -128,7 +126,7 @@ class KCopy
     stdout, stderr, status = Open3.capture3(cmd)
     konnect_error(stderr) if status.exitstatus.eql?(1)
 
-    lines = stdout.lines[1..-1]
+    lines = stdout.lines[1..]
 
     # Create a map of instance id to instance name
     Hash[lines.map do |line|

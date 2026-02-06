@@ -4,7 +4,6 @@
 # TODO: why is the alias not working?
 kk='~/Work/docs/scripts/ruby/kmd-local'
 
-#bash -c "$kk refresh-yml -- local dietbet-game-service"
 # bash -c "$kk refresh-yml -- local falkor"
 # bash -c "$kk refresh-yml -- local runbet"
 # bash -c "$kk refresh-yml -- local quitbet"
@@ -19,7 +18,6 @@ kk='~/Work/docs/scripts/ruby/kmd-local'
 # bash -c "$kk refresh-yml -- local social"
 # bash -c "$kk refresh-yml -- local user"
 
-cp -f -v ~/Work/docs/local-settings/convox-yml/dietbet-game-service.convox.local.yml ~/Work/wb-services/dietbet-game-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/falkor-game-service.convox.local.yml ~/Work/wb-services/falkor-game-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/runbet-game-service.convox.local.yml ~/Work/wb-services/runbet-game-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-admin-auth-service.convox.local.yml ~/Work/wb-services/wb-admin-auth-service/convox.local.yml
@@ -34,6 +32,3 @@ cp -f -v ~/Work/docs/local-settings/convox-yml/wb-notify-service.convox.local.ym
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-social-service.convox.local.yml ~/Work/wb-services/wb-social-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-user-service.convox.local.yml ~/Work/wb-services/wb-user-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-user-service.convox.local.yml ~/Work/wb-services/wb-user-service/convox.local.yml
-cp -f -v ~/Work/docs/local-settings/convox-yml/dietbet.convox.local.yml ~/Work/wb-services/dietbet/convox.local.yml
-cp -f -v ~/Work/docs/local-settings/convox-yml/stepbet.convox.local.yml ~/Work/wb-services/stepbet/convox.local.yml
-

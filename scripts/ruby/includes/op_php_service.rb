@@ -3,23 +3,13 @@
 require_relative 'np_service'
 
 class OpPhpService < NpService
-  def prepare_service
+  def prepare_service; end
 
-  end
+  def prepare_local_service; end
 
-  def prepare_local_service
+  def create_convox_app; end
 
-  end
+  def start_command; end
 
-  def create_convox_app
-
-  end
-
-  def start_command
-
-  end
-
-  def run_connect_command
-    
-  end
+  def run_connect_command; end
 end

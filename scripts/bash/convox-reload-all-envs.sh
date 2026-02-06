@@ -21,7 +21,6 @@ bash -c "$kk refresh-env -- local user no-confirm"
 bash -c "$kk refresh-env -- local hub no-confirm"
 
 
-# cat ~/Work/docs/configs/convox-env/dietbet-game-service.txt | convox env set --app=dietbet-game-service
 #cat ~/Work/docs/configs/convox-env/falkor-game-service.txt | convox env set --app=falkor-game-service
 # cat ~/Work/docs/configs/convox-env/runbet-game-service.txt | convox env set --app=runbet-game-service
 # cat ~/Work/docs/configs/convox-env/wb-admin-auth-service.txt | convox env set --app=wb-admin-auth-service
@@ -34,8 +33,6 @@ bash -c "$kk refresh-env -- local hub no-confirm"
 # cat ~/Work/docs/configs/convox-env/wb-notify-service.txt | convox env set --app=wb-notify-service
 # cat ~/Work/docs/configs/convox-env/wb-social-service.txt | convox env set --app=wb-social-service
 # cat ~/Work/docs/configs/convox-env/wb-user-service.txt | convox env set --app=wb-user-service
-# cat ~/Work/docs/configs/convox-env/dietbet.txt | convox env set --app=dietbet
-# cat ~/Work/docs/configs/convox-env/stepbet.txt | convox env set --app=stepbet
 
 
 

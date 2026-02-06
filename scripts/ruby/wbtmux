@@ -16,7 +16,6 @@ class Wbtmux < OpBase
     'auth' => 'wb-auth-service',
     'bill' => 'wb-billing-service',
     'graphql' => 'wb-graphql-service',
-    'dietbet' => 'dietbet-game-service',
     'hub' => 'wb-hub',
     'admin-auth' => 'wb-admin-auth-service',
     'admin-web' => 'wb-admin-web',
@@ -213,7 +212,7 @@ class Wbtmux < OpBase
   end
 
   def convox_required?
-    @_convox_required ||= !apps_to_run.find(&:on_local_convox?).nil?
+    @convox_required ||= !apps_to_run.find(&:on_local_convox?).nil?
   end
 
   def wait_for_convox
@@ -226,7 +225,7 @@ class Wbtmux < OpBase
   end
 
   def fix_dns_and_aws
-    puts "convox local dev rack disabled"
+    puts 'convox local dev rack disabled'
     return
 
     puts 'Fixing iptables'

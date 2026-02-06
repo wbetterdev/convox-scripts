@@ -15,7 +15,6 @@ class NpServices < OpBase
     'apache-waybetterdev-selfsigned' => '.waybetterdev.com',
     'apache-waybetter-selfsigned' => '.waybetter.com',
     'apache-ninja-selfsigned' => '.waybetter.ninja',
-    'apache-dietbet-selfsigned' => 'local.dietbet.com',
   }
 
   SERVER_IPS = {
@@ -66,13 +65,6 @@ class NpServices < OpBase
     local_convox:         LOCAL_CONVOX_SERVICES.map {|s| NP_SERVICE_DICT.fetch(s)},
     remote_convox_office: REMOTE_SERVICES.map {|s| NP_SERVICE_DICT.fetch(s)},
     local_apache: [
-      { name: 'stepbet-game-service',   path: '/var/www/stepbet',             type: 'php'},
-      { name: 'dev-stepbet',            path: '/var/www/stepbet',             type: 'php'},
-      { name: 'prod-stepbet',           path: '/var/www/stepbet',             type: 'php'},
-      { name: 'dietbet-game-service',   path: '/var/www/dietbet',             type: 'php'},
-      { name: 'dev-dietbet',            path: '/var/www/dietbet',             type: 'php'},
-      { name: 'prod-dietbet',           path: '/var/www/dietbet',             type: 'php'},
-      { name: 'dietbet-imageserver',    path: '/var/www/dietbet-imageserver', type: 'php'},
       { name: 'phpmyadmin',             path: '/var/www/phpmyadmin',          type: 'php'},
     ]
   }

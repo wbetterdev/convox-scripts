@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
 
-public
-
 require 'optparse'
 require 'open3'
 
@@ -47,9 +45,9 @@ class BuildAndroidApp < OpBase
     end
     option_parser.parse!(ARGV)
 
-    unless ["staging", "production"].include?(self.opts_environment)
-      exit_with_error "Invalid environment #{self.opts_environment}. Only 'staging' and 'production' are supported."
-    end
+    return if %w[staging production].include?(opts_environment)
+
+    exit_with_error "Invalid environment #{opts_environment}. Only 'staging' and 'production' are supported."
   end
 
   def build_android_app
@@ -69,14 +67,14 @@ class BuildAndroidApp < OpBase
     #   message: "Running gradle"
     # )
 
-    if self.opts_environment.eql?('production')
+    if opts_environment.eql?('production')
       gradle_param = 'assembleProductionDebug'
       apk_param = 'production'
-    elsif self.opts_environment.eql?('staging')
+    elsif opts_environment.eql?('staging')
       gradle_param = 'assembleStagingDebug'
       apk_param = 'staging'
     else
-      exit_with_error "Invalid environment"
+      exit_with_error 'Invalid environment'
     end
 
     exec_command_in_path("./gradlew clean #{gradle_param} -Pcredentialssource=properties",

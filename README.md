@@ -11,14 +11,6 @@ This repository initially started as a tool for linking NP microservices between
 6. Configuration templates needed when creating a new development environment. You can find these in `/configs/templates/` 
 
 
-## OP Scripts and their usage
-1. [opdeploy](/doc/op-scripts.md#op-deploy) - deployment script for deploying on either of the three servers `api.stepbet.com`, `images.stepbet.com`, `dev.stepbet.com`  
-
-2. [opkonnect](/doc/op-scripts.md#op-konnect) - opens an SSH connection to a server
-
-3. [oplogs](/doc/op-scripts.md#op-logs) - downloads file logs from servers
-
-
 ## NP scripts and their usage
 TODO: add docs here
 1. [npsconfig](/doc/np-scripts.md#nps-config) - script that links services in between them. Run this when you switch location for services. e.g. switch from using an external user service to running a local user service.
@@ -30,4 +22,3 @@ TODO: add docs here
 ## Documentation
 1. [Installation](/doc/installation.md)
 2. [Creating and deploying releases](/doc/releasing-on-op.md)
-

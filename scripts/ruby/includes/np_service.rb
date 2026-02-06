@@ -14,8 +14,8 @@ class NpService < NpPaths
     local_convox: LOCATION_CONVOX_LOCAL,
     remote_convox_office: LOCATION_OFFICE_CONVOX,
     local_apache: LOCATION_APACHE_LOCAL,
-    remote_staging: LOCATION_STAGING_REMOTE,
-  }
+    remote_staging: LOCATION_STAGING_REMOTE
+  }.freeze
 
   def initialize(name:, path:, location:, type: nil, port: nil, gitname: nil, domain: nil)
     @name = name
