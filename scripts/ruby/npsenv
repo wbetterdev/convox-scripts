@@ -139,7 +139,7 @@ class NpsEnv < OpBase
     required_convox_yml_fields.each do |key|
       next unless env_values[key].to_s.eql?('')
 
-      exit_with_error("#{key} is required to have a value by #{opts_np_app.path}/convox.yml")
+      # exit_with_error("#{key} is required to have a value by #{opts_np_app.path}/convox.yml")
     end
   end
 
