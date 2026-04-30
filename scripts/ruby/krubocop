@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-public
-
 require 'optparse'
 require 'open3'
 
@@ -61,7 +59,7 @@ class KRubocop
     pattern = %r{([\w^ ]+(/[\w^ ]+)+\.rb):\d+:\d+}
     all_matches = []
     File.foreach(temp_file) do |line|
-      if matches = line.match(pattern)
+      if (matches = line.match(pattern))
         all_matches.push(matches[1])
       end
     end
@@ -142,10 +140,10 @@ class KRubocop
 
     op.parse!(ARGV)
 
-    if app.nil?
-      info "--app not provided, using 'kraken'"
-      self.app = 'kraken'
-    end
+    return unless app.nil?
+
+    info "--app not provided, using 'kraken'"
+    self.app = 'kraken'
   end
 
   def check_for_convox
@@ -158,7 +156,7 @@ class KRubocop
     stdout, stderr, status = Open3.capture3(cmd)
     konnect_error(stderr) if status.exitstatus.eql?(1)
 
-    lines = stdout.lines[1..-1]
+    lines = stdout.lines[1..]
 
     # Create a map of instance id to instance name
     Hash[lines.map do |line|

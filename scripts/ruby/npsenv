@@ -139,7 +139,7 @@ class NpsEnv < OpBase
     required_convox_yml_fields.each do |key|
       next unless env_values[key].to_s.eql?('')
 
-      exit_with_error("#{key} is required to have a value by #{opts_np_app.path}/convox.yml")
+      # exit_with_error("#{key} is required to have a value by #{opts_np_app.path}/convox.yml")
     end
   end
 
@@ -216,7 +216,7 @@ class NpsEnv < OpBase
       )
     end
 
-    env_values.keys.each do |key|
+    env_values.each_key do |key|
       next if (base = key.gsub(/_SERVICE_(HOST|PORT|SCHEME)$/, '_SERVICE')).eql?(key)
 
       %w[HOST PORT SCHEME].each { |s| default_keys.push("#{base}_#{s}") }
@@ -226,7 +226,7 @@ class NpsEnv < OpBase
   end
 
   def env_from_convox_yml
-    @_env_from_convox_yml ||= begin
+    @env_from_convox_yml ||= begin
       yml = YAML.safe_load(File.read(opts_np_app.convox_yml_path))
 
       self.class.parse_environment_section(yml['environment']).merge!(
@@ -285,7 +285,7 @@ class NpsEnv < OpBase
   end
 
   def val_procs
-    @_val_procs ||= {
+    @val_procs ||= {
       'GEN2' => -> { 'false' },
       'REDIS_HOST' => -> { find_local_ip },
       'REDIS_QUEUE_HOST' => -> { find_local_ip },
@@ -335,13 +335,13 @@ class NpsEnv < OpBase
           'https://hub-office.waybetterdev.com',
           'https://www-office.waybetter.ninja'
         ].map { |u| [u, u.gsub(/office/, 'local')] }
-        .push(
-          'https://accounts-staging.waybetter.com',
-          'https://graphql-staging.waybetter.com',
-          'https://hub-staging.waybetter.com',
-          'https://www-staging.waybetter.ninja'
-        )
-        .flatten.join(',')
+          .push(
+            'https://accounts-staging.waybetter.com',
+            'https://graphql-staging.waybetter.com',
+            'https://hub-staging.waybetter.com',
+            'https://www-staging.waybetter.ninja'
+          )
+          .flatten.join(',')
       },
 
       'WB_ADMIN_AUTH_SERVICE_EXTERNAL_URI' => -> { np_service_external_url('wb-admin-auth-service') },
@@ -373,12 +373,6 @@ class NpsEnv < OpBase
       'WB_HUB_EXTERNAL_URL' => -> { np_service_external_url('wb-hub') },
       'WB_HUB_DOMAIN' => -> { np_service_external_url('wb-hub', domain_only: true) },
 
-      'STEPBET_GAME_SERVICE_URL' => -> { "#{np_service_internal_url('stepbet-game-service')}/api/game-service" },
-      'WB_STEPBET_ADMIN_URL' => -> { "#{np_service_internal_url('stepbet-game-service')}/admin" },
-
-      'DIETBET_GAME_SERVICE_URL' => -> { "#{np_service_internal_url('dietbet-game-service')}/api/game-service" },
-      'WB_DIETBET_ADMIN_URL' => -> { "#{np_service_internal_url('dietbet-game-service')}/admin" },
-
       # TODO: this is a hack. Needs to be fixed properly
       'WB_ADMIN_GRAPHQL_SERVICE_EXTERNAL_URL' => -> { np_service_external_url('wb-graphql-service', variant: 'ninja') },
 
@@ -404,15 +398,13 @@ class NpsEnv < OpBase
   end
 
   def find_ruby_version
-    @_find_ruby_version ||= (rbenv_ruby_version || gemfile_ruby_version)
+    @find_ruby_version ||= rbenv_ruby_version || gemfile_ruby_version
   end
 
   def rbenv_ruby_version
-    begin
-      File.read("#{opts_np_app.path}/.ruby-version")
-    rescue
-      nil
-    end
+    File.read("#{opts_np_app.path}/.ruby-version")
+  rescue StandardError
+    nil
   end
 
   def gemfile_ruby_version

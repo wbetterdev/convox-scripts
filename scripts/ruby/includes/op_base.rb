@@ -75,34 +75,32 @@ class OpBase < NpPaths
     load_np_services_config unless defined?(NpServices) == 'constant'
 
     @_np_services ||= NpService::APP_LOCATIONS \
-      .map { |type, location| NpServices::NP_SERVICES[type].map  { |s| s.merge(location: location) } }
-      .flatten
-      .each_with_object({}) do |service_data, hash|
-        name = dashed_app_name(service_data[:name]).to_sym
-        exit_with_error "App #{name} can't have two locations: #{hash[name].location.green}#{' and '.red}#{service_data[:location].green}" if hash[name]
+                      .map { |type, location| NpServices::NP_SERVICES[type].map { |s| s.merge(location: location) } }
+                      .flatten
+                      .each_with_object({}) do |service_data, hash|
+      name = dashed_app_name(service_data[:name]).to_sym
+      exit_with_error "App #{name} can't have two locations: #{hash[name].location.green}#{' and '.red}#{service_data[:location].green}" if hash[name]
 
-        hash[name] = build_service_from_config(service_data)
-      end
+      hash[name] = build_service_from_config(service_data)
+    end
       .merge(mysql: local_mysql_app)
 
     @_np_services
   end
 
   def local_mysql_app
-    @_local_mysql_app ||= begin
-      NpDockerService.new(
-        name: 'mysql', gitname: nil, type: 'mysql', port: '3306',
-        path: "#{path_kraken}/superlocal", location: 'local-docker'
-      )
-    end
+    @local_mysql_app ||= NpDockerService.new(
+      name: 'mysql', gitname: nil, type: 'mysql', port: '3306',
+      path: "#{path_kraken}/superlocal", location: 'local-docker'
+    )
   end
 
   def local_kraken_np_services
-    @_local_kraken_np_services ||= np_services.map { |_k, v| v.on_local_kraken? ? v : nil }.compact
+    @local_kraken_np_services ||= np_services.map { |_k, v| v.on_local_kraken? ? v : nil }.compact
   end
 
   def local_convox_np_services
-    @_local_convox_np_services ||= np_services.map { |_k, v| v.on_local_convox? ? v : nil }.compact
+    @local_convox_np_services ||= np_services.map { |_k, v| v.on_local_convox? ? v : nil }.compact
   end
 
   def convox_office_server?
@@ -115,14 +113,14 @@ class OpBase < NpPaths
   end
 
   def convox_local_rack
-    @_convox_local_rack ||= begin
+    @convox_local_rack ||= begin
       load_np_services_config
       NpServices::LOCAL_CONVOX_RACK
     end
   end
 
   def convox_racks
-    @_convox_racks ||= begin
+    @convox_racks ||= begin
       load_np_services_config
       NpServices::CONVOX_RACKS
     end
@@ -324,10 +322,7 @@ class OpBase < NpPaths
   def np_service_domain(name, location: nil)
     name = hyphenated_app_name(name)
 
-    transformations = {
-      'dietbet-game-service' => 'dietbet',
-      'stepbet-game-service' => 'stepbet'
-    }
+    transformations = {}
     domain = transformations[name] || name
 
     apply_location_to_np_service_domain("#{domain}.convox.local", name, location)
@@ -342,19 +337,21 @@ class OpBase < NpPaths
     urls = \
       if NpServices::USE_STAGING_DOMAIN_LOCALLY
         {
-          'wb-auth-service'       => { 'default' => 'accounts-staging.waybetter.com' },
-          'wb-graphql-service'    => { 'default' => 'graphql-staging.waybetter.com', 'ninja' => 'graphql-staging.waybetter.ninja' },
-          'wb-hub'                => { 'default' => 'hub-staging.waybetter.com'},
+          'wb-auth-service' => { 'default' => 'accounts-staging.waybetter.com' },
+          'wb-graphql-service' => { 'default' => 'graphql-staging.waybetter.com',
+                                    'ninja' => 'graphql-staging.waybetter.ninja' },
+          'wb-hub' => { 'default' => 'hub-staging.waybetter.com' },
           'wb-admin-auth-service' => { 'default' => 'admin-auth-staging.waybetter.ninja' },
-          'wb-admin-web'          => { 'default' => 'www-staging.waybetter.ninja' }
+          'wb-admin-web' => { 'default' => 'www-staging.waybetter.ninja' }
         }
       else
         {
-          'wb-auth-service'       => { 'default' => 'accounts-local.waybetterdev.com' },
-          'wb-graphql-service'    => { 'default' => 'graphql-local.waybetterdev.com', 'ninja' => 'graphql-local.waybetter.ninja' },
-          'wb-hub'                => { 'default' => 'hub-local.waybetterdev.com'},
+          'wb-auth-service' => { 'default' => 'accounts-local.waybetterdev.com' },
+          'wb-graphql-service' => { 'default' => 'graphql-local.waybetterdev.com',
+                                    'ninja' => 'graphql-local.waybetter.ninja' },
+          'wb-hub' => { 'default' => 'hub-local.waybetterdev.com' },
           'wb-admin-auth-service' => { 'default' => 'admin-auth-local.waybetter.ninja' },
-          'wb-admin-web'          => { 'default' => 'www-local.waybetter.ninja' }
+          'wb-admin-web' => { 'default' => 'www-local.waybetter.ninja' }
         }
       end
     variant ||= 'default'
@@ -376,12 +373,12 @@ class OpBase < NpPaths
   end
 
   def find_local_ip
-    @_find_local_ip ||= exec_command('hostname -I | egrep -oh 192.168.[0-9]+.[0-9]+').split("\n").first
+    @find_local_ip ||= exec_command('hostname -I | egrep -oh 192.168.[0-9]+.[0-9]+').split("\n").first
   end
 
   ################ CONVOX ###################
   def convox_ready?
-    @_convox_ready ||= exec_command("cd #{@path} && convox apps").match(/RELEASE/)
+    @convox_ready ||= exec_command("cd #{@path} && convox apps").match(/RELEASE/)
   end
 
   def kubernetes_ready?

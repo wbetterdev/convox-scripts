@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DNS_NAME=waybetter.com
-CERT_NAME=dietbet-selfsigned
+CERT_NAME=wbdev-selfsigned
 
 cd "/home/mihai/Work/docs/certs/apache/"
 mv "$CERT_NAME" "$CERT_NAME-old"

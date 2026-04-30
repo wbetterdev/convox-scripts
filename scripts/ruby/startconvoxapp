@@ -15,28 +15,6 @@ class StartConvoxApp < OpBase
       exit
     end
 
-    prepare_start_script
-  end
-
-  def prepare_start_script
-    script = <<~SCRIPT
-      wget --no-check-certificate https://dev.dietbet.com/files/convox/office-dev-convox-local-rack.crt -O "/usr/share/ca-certificates/convox.crt"
-      echo "convox.crt" >> "/etc/ca-certificates.conf"
-      update-ca-certificates
-      cat "/usr/share/ca-certificates/convox.crt"
-    SCRIPT
-
-    local_kraken_np_services.each do |np_service|
-      script << "echo '#{find_local_ip} #{np_service_domain(np_service.name)}' >> /etc/hosts\n"
-    end
-    script << "/app/bin/start_web_server.sh\n"
-
-    # hide the script from git via the .env path (that is set in every gitignore)
-    script_path = '.env.start_local_web_server'
-
-    File.write(script_path, script, mode: 'w+')
-    exec_ic_command "chmod u+x #{script_path}"
-    exec_ic_command "sed -i 's/bin\\/start_web_server.sh/#{script_path}/' convox.local.yml"
     exec_ic_command 'DEBUG_CONVOX=true convox start -m convox.local.yml'
   end
 end

@@ -153,7 +153,7 @@ class ApacheConfig < OpBase
       end
       puts "#{"https://#{domain}".green} redirects to #{service.to_s.blue} with cert #{cert.red}\n"
     else
-      puts "#{"https://#{domain}".green} is on #{(conf['DocumentRoot']).to_s.blue} with cert #{cert.red}\n"
+      puts "#{"https://#{domain}".green} is on #{conf['DocumentRoot'].to_s.blue} with cert #{cert.red}\n"
     end
     conf
   end
@@ -206,7 +206,8 @@ class ApacheConfig < OpBase
       ip = ip_data[:ip]
       np_service_domains_conf.map do |data|
         name = data[:name]
-        domain = get_proxy_from_url(name, external: data[:external], variant: data[:variant], location: ip_data[:overwrite_location])
+        domain = get_proxy_from_url(name, external: data[:external], variant: data[:variant],
+                                          location: ip_data[:overwrite_location])
 
         "#{ip} #{domain}"
       end
