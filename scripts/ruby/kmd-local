@@ -48,6 +48,7 @@ APPS = {
 CONFIRMS = [
   /convox env set/,
   /convox deploy/,
+  /convox restart/,
   /convox apps cancel/,
   /convox apps create/,
   /convox releases promote/,
@@ -65,6 +66,7 @@ KMDS = {
   'resources' => { expanded: 'convox resources', args: [:rack] },
   'info' => { expanded: 'convox apps info', args: %i[rack app] },
   'start' => { expanded: 'DEBUG_CONVOX=true convox start -m ${config_file}', args: %i[rack app convox_config_file] },
+  'restart' => { expanded: 'convox restart', args: %i[rack app] },
   'env' => { expanded: 'convox env', args: %i[rack app] },
   # "promote" =>       { expanded: "convox releases promote", args: %i[rack app wait] },
   'builds' => { expanded: 'convox builds', args: %i[rack app] },
