@@ -200,7 +200,7 @@ class NpsEnv < OpBase
   def insert_missing_env_keys(env_values)
     default_keys = %w[
       PORT VERIFY_CERTS WB_INTERNAL_URL_SCHEME WB_ENFORCE_HTTPS
-      WB_JWT_COOKIE WB_ENV GEMFURY_SECRET GEN2
+      WB_JWT_COOKIE WB_ENV GEMFURY_SECRET GEN2 SERVICE APP HOSTNAME
     ]
 
     if opts_np_app.type_is_ruby?
@@ -290,6 +290,9 @@ class NpsEnv < OpBase
       'REDIS_HOST' => -> { find_local_ip },
       'REDIS_QUEUE_HOST' => -> { find_local_ip },
       'NODE_ENV' => -> { 'development' },
+      'SERVICE' => -> { 'web' },
+      'APP' => -> { opts_np_app.name },
+      'HOSTNAME' => -> { "#{opts_np_app.name}.convox.local" },
       # 'WB_ENV' => -> { 'local' },
       'VERIFY_CERTS' => -> { 'false' },
       'WB_ADMIN_JWT_COOKIE' => -> { 'wb-jwt-admin-office' },
