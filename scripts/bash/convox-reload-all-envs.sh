@@ -6,8 +6,6 @@
 kk='~/Work/docs/scripts/ruby/kmd-local'
 
 bash -c "$kk refresh-env -- local falkor no-confirm"
-bash -c "$kk refresh-env -- local runbet no-confirm"
-bash -c "$kk refresh-env -- local quitbet no-confirm"
 bash -c "$kk refresh-env -- local admin-auth no-confirm"
 bash -c "$kk refresh-env -- local admin-web no-confirm"
 bash -c "$kk refresh-env -- local auth no-confirm"
@@ -22,7 +20,6 @@ bash -c "$kk refresh-env -- local hub no-confirm"
 
 
 #cat ~/Work/docs/configs/convox-env/falkor-game-service.txt | convox env set --app=falkor-game-service
-# cat ~/Work/docs/configs/convox-env/runbet-game-service.txt | convox env set --app=runbet-game-service
 # cat ~/Work/docs/configs/convox-env/wb-admin-auth-service.txt | convox env set --app=wb-admin-auth-service
 #cat ~/Work/docs/configs/convox-env/wb-admin-web.txt | convox env set --app=wb-admin-web
 # cat ~/Work/docs/configs/convox-env/wb-auth-service.txt | convox env set --app=wb-auth-service

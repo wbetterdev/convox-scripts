@@ -34,9 +34,7 @@ class NpServices < OpBase
     :admin_auth => { name: 'wb-admin-auth-service',  gitname: 'wb-admin-auth-service',   type: 'node',        port: 8020 },
     :admin_web  => { name: 'wb-admin-web',           gitname: 'wb-admin-web',            type: 'node',        port: 8010 },
     :falkor     => { name: 'falkor-game-service',    gitname: 'falkor-game-service',     type: 'ruby',        port: 3004 },
-    :quitbet    => { name: 'quitbet-game-service',   gitname: 'quitbet-game-service',    type: 'ruby',        port: 3005 },
     :notify     => { name: 'wb-notify-service',      gitname: 'wb-notify-service',       type: 'ruby',        port: 3007 },
-    :runbet     => { name: 'runbet-game-service',    gitname: 'runbet-game-service',     type: 'ruby',        port: 3010 },
     :metric     => { name: 'wb-metric-service',      gitname: 'wb-metric-service',       type: 'ruby',        port: 3002 },
     :auth       => { name: 'wb-auth-service',        gitname: 'wb-auth-service',         type: 'node',        port: 8000 },
     :user       => { name: 'wb-user-service',        gitname: 'wb-user-service',         type: 'node',        port: 4000 },
@@ -53,7 +51,7 @@ class NpServices < OpBase
   LOCAL_CONVOX_SERVICES = []
   REMOTE_SERVICES = [
     :hub, :member, :admin_auth, :auth, :admin_web, :graphql,
-    :quitbet, :runbet, :notify,
+    :notify,
     :user, :billing, :social, :metric, :falkor
   ]
 

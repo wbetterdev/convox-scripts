@@ -315,8 +315,6 @@ class NpsEnv < OpBase
 
       'WB_NOTIFY_SERVICE_URL' => -> { np_service_internal_url('wb-notify-service') },
       'FALKOR_GAME_SERVICE_URL' => -> { np_service_internal_url('falkor-game-service') },
-      'QUITBET_GAME_SERVICE_URL' => -> { np_service_internal_url('quitbet-game-service') },
-      'RUNBET_GAME_SERVICE_URL' => -> { np_service_internal_url('runbet-game-service') },
       'WB_BILLING_SERVICE_URL' => -> { np_service_internal_url('wb-billing-service') },
       'WB_MEMBERSHIP_SERVICE_URL' => -> { np_service_internal_url('wb-membership-service') },
       # falkor needs MEMBERSHIP_SERVICE_HOST instead of WB_MEMBERSHIP_SERVICE_HOST

@@ -5,8 +5,6 @@
 kk='~/Work/docs/scripts/ruby/kmd-local'
 
 # bash -c "$kk refresh-yml -- local falkor"
-# bash -c "$kk refresh-yml -- local runbet"
-# bash -c "$kk refresh-yml -- local quitbet"
 # bash -c "$kk refresh-yml -- local admin-auth"
 # bash -c "$kk refresh-yml -- local admin-web"
 # bash -c "$kk refresh-yml -- local billing"
@@ -19,7 +17,6 @@ kk='~/Work/docs/scripts/ruby/kmd-local'
 # bash -c "$kk refresh-yml -- local user"
 
 cp -f -v ~/Work/docs/local-settings/convox-yml/falkor-game-service.convox.local.yml ~/Work/wb-services/falkor-game-service/convox.local.yml
-cp -f -v ~/Work/docs/local-settings/convox-yml/runbet-game-service.convox.local.yml ~/Work/wb-services/runbet-game-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-admin-auth-service.convox.local.yml ~/Work/wb-services/wb-admin-auth-service/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-admin-web.convox.local.yml ~/Work/wb-services/wb-admin-web/convox.local.yml
 cp -f -v ~/Work/docs/local-settings/convox-yml/wb-auth-service.convox.local.yml ~/Work/wb-services/wb-auth-service/convox.local.yml

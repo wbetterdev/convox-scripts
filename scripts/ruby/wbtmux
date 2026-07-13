@@ -23,8 +23,6 @@ class Wbtmux < OpBase
     'notify' => 'wb-notify-service',
     'member' => 'wb-membership-service',
     'falkor' => 'falkor-game-service',
-    'runbet' => 'runbet-game-service',
-    'quitbet' => 'quitbet-game-service',
     'social' => 'wb-social-service'
   }.freeze
   ALL_SERVICES = SERVICE_MAP.keys
