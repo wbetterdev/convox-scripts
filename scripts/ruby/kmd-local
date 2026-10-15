@@ -82,6 +82,10 @@ KMDS = {
   'rubocop' => { expanded: 'krubocop', args: %i[rack app service_from_ps] }
 }.freeze
 
+# Read-only commands that take 'all' as the app, to run them for every app on
+# the rack (eg. 'kmd releases -- stag all').
+ALL_APPS_KMDS = %w[releases builds ps].freeze
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -114,6 +118,8 @@ class Kmd < OpBase
 
   def go(command:, args:)
     command_info, command_args = choose_command
+    return go_all_apps(command_info, command_args) if all_apps?(command_info)
+
     expanded_command = [command_info[:expanded]]
     expanded_command << command_args.join(' ') unless command_args.nil?
 
@@ -132,6 +138,26 @@ class Kmd < OpBase
 
   def show_help
     puts HELP
+  end
+
+  def all_apps?(command_info)
+    app_filter.eql?('all') && ALL_APPS_KMDS.include?(KMDS.key(command_info))
+  end
+
+  def go_all_apps(command_info, command_args)
+    expanded_command = [command_info[:expanded], *command_args]
+    add_rack(expanded_command)
+    base_command = expanded_command.join(' ').gsub(/\s+/, ' ')
+
+    rack_apps.each do |app|
+      app_command = "#{base_command} --app #{app}"
+      puts
+      system(app_command) if ok_to_launch?(app_command)
+    end
+  end
+
+  def rack_apps
+    `convox apps --rack #{rack}`.lines[1..].to_a.filter_map { |l| l.split.first }
   end
 
   protected
@@ -434,6 +460,10 @@ class Kmd < OpBase
 
          kmd start -- l runbet web
            # -> 'convox start web --rack local --app runbet-game-service
+
+         kmd releases -- stag all
+           # => convox releases --rack waybetter/stagingv3 --app <app>, for every app on the rack
+           # 'all' works for: #{ALL_APPS_KMDS.join(', ')}
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
