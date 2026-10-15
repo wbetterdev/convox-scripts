@@ -86,6 +86,9 @@ KMDS = {
 # the rack (eg. 'kmd releases -- stag all').
 ALL_APPS_KMDS = %w[releases builds ps].freeze
 
+# Columns of the 'convox releases' table, as 'releases pending' reads them.
+RELEASE_COLUMNS = %w[ID STATUS BUILD CREATED DESCRIPTION].freeze
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -118,6 +121,7 @@ class Kmd < OpBase
 
   def go(command:, args:)
     command_info, command_args = choose_command
+    return go_pending_releases if pending_releases?(command_info, command_args)
     return go_all_apps(command_info, command_args) if all_apps?(command_info)
 
     expanded_command = [command_info[:expanded]]
@@ -158,6 +162,60 @@ class Kmd < OpBase
 
   def rack_apps
     `convox apps --rack #{rack}`.lines[1..].to_a.filter_map { |l| l.split.first }
+  end
+
+  def pending_releases?(command_info, command_args)
+    KMDS.key(command_info).eql?('releases') && command_args.eql?(%w[pending])
+  end
+
+  # A table of each app's active release, its newest release, and how many
+  # releases newer than the active one are waiting to be promoted.
+  def go_pending_releases
+    add_rack([])
+    apps = app_filter.eql?('all') ? rack_apps : [choose_app]
+    rows = apps.map { |app| Thread.new { pending_release_row(app) } }.map(&:value)
+
+    print_table(%w[APP PENDING ACTIVE NEWEST], rows)
+  end
+
+  def pending_release_row(app)
+    releases = parse_releases(`convox releases --rack #{rack} --app #{app}`)
+    active_index = releases.index { |r| r['STATUS'].eql?('active') }
+    pending = active_index.nil? ? "#{releases.size}+" : active_index.to_s
+    newest = active_index&.zero? ? '-' : release_summary(releases.first)
+
+    [app, pending, release_summary(releases[active_index.to_i]) || '?', newest]
+  end
+
+  # 'convox releases' leaves STATUS blank on most rows and CREATED has spaces
+  # ("1 hour ago"), so split rows on the header's column positions.
+  def parse_releases(output)
+    header, *lines = output.lines.map(&:chomp)
+    starts = RELEASE_COLUMNS.map { |column| header.to_s.index(column) }
+    return [] unless starts.all?
+
+    lines.map do |line|
+      RELEASE_COLUMNS.each_with_index.to_h do |column, i|
+        [column, line[starts[i]...starts[i + 1]].to_s.strip]
+      end
+    end
+  end
+
+  def release_summary(release)
+    return if release.nil?
+
+    "#{release['ID']} #{release['DESCRIPTION'][0, 60]} (#{release['CREATED']})"
+  end
+
+  def print_table(header, rows)
+    widths = header.each_index.map { |i| ([header] + rows).map { |row| row[i].size }.max }
+    format_row = ->(row) { row.each_with_index.map { |cell, i| cell.ljust(widths[i]) }.join('  ').rstrip }
+
+    puts format_row.call(header).bold
+    rows.each do |row|
+      line = format_row.call(row)
+      puts row[1].eql?('0') ? line : line.yellow
+    end
   end
 
   protected
@@ -464,6 +522,10 @@ class Kmd < OpBase
          kmd releases -- stag all
            # => convox releases --rack waybetter/stagingv3 --app <app>, for every app on the rack
            # 'all' works for: #{ALL_APPS_KMDS.join(', ')}
+
+         kmd releases pending -- stag all
+           # => a table of every app's active release vs its newest release, and how many are pending promotion
+           # also works for one app, eg. 'kmd releases pending -- stag notify'
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
