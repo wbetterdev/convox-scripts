@@ -225,7 +225,7 @@ class Kmd < OpBase
       next puts("✅ #{line}") if row[:pending].eql?('0')
 
       puts "⏳ #{line}".yellow
-      puts "#{indent}last pending  #{row[:last_pending]}".yellow
+      puts "#{indent}last pending  #{row[:last_pending]}".cyan
     end
   end
 
