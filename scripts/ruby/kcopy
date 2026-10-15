@@ -76,7 +76,7 @@ class KCopy
         If you provide no command to run, it runs 'bash'.
 
         Ex:
-              kcopy -r local/convox -a falkor-game-service -f vendor/gems/dev/wb-game/spec/dummy/db/schema.rb
+              kcopy -r local/convox -a falkor-game-service -f db/schema.rb
 
       BAN
 

@@ -160,8 +160,9 @@ class Kmd < OpBase
     end
   end
 
+  # The rack's apps that are in APPS, skipping dead apps still on the rack.
   def rack_apps
-    `convox apps --rack #{rack}`.lines[1..].to_a.filter_map { |l| l.split.first }
+    `convox apps --rack #{rack}`.lines[1..].to_a.filter_map { |l| l.split.first } & APPS.values
   end
 
   def pending_releases?(command_info, command_args)
@@ -526,11 +527,11 @@ class Kmd < OpBase
          kmd logs -- s kr
            # -> 'convox logs --rack staging --app kraken'
 
-         kmd start -- l runbet web
-           # -> 'convox start web --rack local --app runbet-game-service
+         kmd start -- l notify web
+           # -> 'convox start web --rack local --app wb-notify-service
 
          kmd releases -- stag all
-           # => convox releases --rack waybetter/stagingv3 --app <app>, for every app on the rack
+           # => convox releases --rack waybetter/stagingv3 --app <app>, for every app in APPS on the rack
            # 'all' works for: #{ALL_APPS_KMDS.join(', ')}
 
          kmd releases pending -- stag all
@@ -548,14 +549,14 @@ class Kmd < OpBase
            # the 'deploy' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
 
-         kmd promote ABCDEFGHIJ -- stg run wait
-           # => convox releases promote ABCDEFGHIJ --rack stg-west --app runbet-game-service --wait
+         kmd promote ABCDEFGHIJ -- stg notify wait
+           # => convox releases promote ABCDEFGHIJ --rack stg-west --app wb-notify-service --wait
            # the 'promote' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
            # the 'wait' argument is optional, and will be skipped if not provided
 
-         kmd one-off -- prd run web ABCDEFGHIJ
-           # => convox run web "/usr/bin/env bash" --rack prd-west --app runbet-game-service --release ABCDEFGHIJ
+         kmd one-off -- prd notify web ABCDEFGHIJ
+           # => convox run web "/usr/bin/env bash" --rack prd-west --app wb-notify-service --release ABCDEFGHIJ
            # the 'one-off' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
       Sending the rack and app filters is optional. If they are not provided, or if the filter doesnt match anything (or too many things), a menu will be presented to specify them.
