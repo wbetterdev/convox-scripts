@@ -175,7 +175,7 @@ class Kmd < OpBase
     add_rack([])
     apps = app_filter.eql?('all') ? rack_apps : [choose_app]
     rows = apps.map { |app| Thread.new { pending_release_row(app) } }.map(&:value)
-                .sort_by { |row| [row[:pending].eql?('0') ? 1 : 0, row[:app]] }
+                .sort_by { |row| [-row[:pending].to_i, row[:app]] }
 
     print_pending_releases(rows)
   end
