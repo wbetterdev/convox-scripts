@@ -82,6 +82,13 @@ KMDS = {
   'rubocop' => { expanded: 'krubocop', args: %i[rack app service_from_ps] }
 }.freeze
 
+# Read-only commands that take 'all' as the app, to run them for every app on
+# the rack (eg. 'kmd releases -- stag all').
+ALL_APPS_KMDS = %w[releases builds ps].freeze
+
+# Columns of the 'convox releases' table, as 'releases pending' reads them.
+RELEASE_COLUMNS = %w[ID STATUS BUILD CREATED DESCRIPTION].freeze
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -114,6 +121,9 @@ class Kmd < OpBase
 
   def go(command:, args:)
     command_info, command_args = choose_command
+    return go_pending_releases if pending_releases?(command_info, command_args)
+    return go_all_apps(command_info, command_args) if all_apps?(command_info)
+
     expanded_command = [command_info[:expanded]]
     expanded_command << command_args.join(' ') unless command_args.nil?
 
@@ -132,6 +142,90 @@ class Kmd < OpBase
 
   def show_help
     puts HELP
+  end
+
+  def all_apps?(command_info)
+    app_filter.eql?('all') && ALL_APPS_KMDS.include?(KMDS.key(command_info))
+  end
+
+  def go_all_apps(command_info, command_args)
+    expanded_command = [command_info[:expanded], *command_args]
+    add_rack(expanded_command)
+    base_command = expanded_command.join(' ').gsub(/\s+/, ' ')
+
+    rack_apps.each do |app|
+      app_command = "#{base_command} --app #{app}"
+      puts
+      system(app_command) if ok_to_launch?(app_command)
+    end
+  end
+
+  # The rack's apps that are in APPS, skipping dead apps still on the rack.
+  def rack_apps
+    `convox apps --rack #{rack}`.lines[1..].to_a.filter_map { |l| l.split.first } & APPS.values
+  end
+
+  def pending_releases?(command_info, command_args)
+    KMDS.key(command_info).eql?('releases') && command_args.eql?(%w[pending])
+  end
+
+  # A table of each app's active release, its newest release, and how many
+  # releases newer than the active one are waiting to be promoted.
+  def go_pending_releases
+    add_rack([])
+    apps = app_filter.eql?('all') ? rack_apps : [choose_app]
+    rows = apps.map { |app| Thread.new { pending_release_row(app) } }.map(&:value)
+                .sort_by { |row| [-row[:pending].to_i, row[:app]] }
+
+    print_pending_releases(rows)
+  end
+
+  def pending_release_row(app)
+    releases = parse_releases(`convox releases --rack #{rack} --app #{app}`)
+    active_index = releases.index { |r| r['STATUS'].eql?('active') }
+
+    {
+      app: app,
+      pending: active_index.nil? ? "#{releases.size}+" : active_index.to_s,
+      active: release_summary(releases[active_index.to_i]) || '?',
+      last_pending: (release_summary(releases.first) unless active_index&.zero?)
+    }
+  end
+
+  # 'convox releases' leaves STATUS blank on most rows and CREATED has spaces
+  # ("1 hour ago"), so split rows on the header's column positions.
+  def parse_releases(output)
+    header, *lines = output.lines.map(&:chomp)
+    starts = RELEASE_COLUMNS.map { |column| header.to_s.index(column) }
+    return [] unless starts.all?
+
+    lines.map do |line|
+      RELEASE_COLUMNS.each_with_index.to_h do |column, i|
+        [column, line[starts[i]...starts[i + 1]].to_s.strip]
+      end
+    end
+  end
+
+  def release_summary(release)
+    return if release.nil?
+
+    "#{release['ID']} #{release['DESCRIPTION'][0, 60]} (#{release['CREATED']})"
+  end
+
+  # One line per app: its newest release waiting to be promoted, or its active
+  # release when nothing is waiting.
+  def print_pending_releases(rows)
+    app_width = rows.map { |row| row[:app].size }.max.to_i
+    pending_width = 'PENDING'.size
+
+    # The emojis are two columns wide, so the header is indented by three.
+    puts "   #{'APP'.ljust(app_width)}  #{'PENDING'.ljust(pending_width)}  RELEASE".bold
+    rows.each do |row|
+      app_columns = "#{row[:app].ljust(app_width)}  #{row[:pending].ljust(pending_width)}"
+      next puts("✅ #{app_columns}  active   #{row[:active]}") if row[:pending].eql?('0')
+
+      puts "⏳ #{app_columns}  pending  #{row[:last_pending]}".yellow
+    end
   end
 
   protected
@@ -432,8 +526,16 @@ class Kmd < OpBase
          kmd logs -- s kr
            # -> 'convox logs --rack staging --app kraken'
 
-         kmd start -- l runbet web
-           # -> 'convox start web --rack local --app runbet-game-service
+         kmd start -- l notify web
+           # -> 'convox start web --rack local --app wb-notify-service
+
+         kmd releases -- stag all
+           # => convox releases --rack waybetter/stagingv3 --app <app>, for every app in APPS on the rack
+           # 'all' works for: #{ALL_APPS_KMDS.join(', ')}
+
+         kmd releases pending -- stag all
+           # => a table of every app's active release vs its newest release, and how many are pending promotion
+           # also works for one app, eg. 'kmd releases pending -- stag notify'
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
@@ -446,14 +548,14 @@ class Kmd < OpBase
            # the 'deploy' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
 
-         kmd promote ABCDEFGHIJ -- stg run wait
-           # => convox releases promote ABCDEFGHIJ --rack stg-west --app runbet-game-service --wait
+         kmd promote ABCDEFGHIJ -- stg notify wait
+           # => convox releases promote ABCDEFGHIJ --rack stg-west --app wb-notify-service --wait
            # the 'promote' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
            # the 'wait' argument is optional, and will be skipped if not provided
 
-         kmd one-off -- prd run web ABCDEFGHIJ
-           # => convox run web "/usr/bin/env bash" --rack prd-west --app runbet-game-service --release ABCDEFGHIJ
+         kmd one-off -- prd notify web ABCDEFGHIJ
+           # => convox run web "/usr/bin/env bash" --rack prd-west --app wb-notify-service --release ABCDEFGHIJ
            # the 'one-off' command normally requires confirmation. Adding the
            # no-confirm arg overrides that.
       Sending the rack and app filters is optional. If they are not provided, or if the filter doesnt match anything (or too many things), a menu will be presented to specify them.
