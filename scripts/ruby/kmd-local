@@ -211,10 +211,11 @@ class Kmd < OpBase
     widths = header.each_index.map { |i| ([header] + rows).map { |row| row[i].size }.max }
     format_row = ->(row) { row.each_with_index.map { |cell, i| cell.ljust(widths[i]) }.join('  ').rstrip }
 
-    puts format_row.call(header).bold
+    # The emojis are two columns wide, so the header is indented by three.
+    puts "   #{format_row.call(header)}".bold
     rows.each do |row|
       line = format_row.call(row)
-      puts row[1].eql?('0') ? line : line.yellow
+      puts row[1].eql?('0') ? "✅ #{line}" : "⏳ #{line}".yellow
     end
   end
 
