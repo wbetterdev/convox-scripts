@@ -175,16 +175,19 @@ class Kmd < OpBase
     apps = app_filter.eql?('all') ? rack_apps : [choose_app]
     rows = apps.map { |app| Thread.new { pending_release_row(app) } }.map(&:value)
 
-    print_table(%w[APP PENDING ACTIVE NEWEST], rows)
+    print_pending_releases(rows)
   end
 
   def pending_release_row(app)
     releases = parse_releases(`convox releases --rack #{rack} --app #{app}`)
     active_index = releases.index { |r| r['STATUS'].eql?('active') }
-    pending = active_index.nil? ? "#{releases.size}+" : active_index.to_s
-    newest = active_index&.zero? ? '-' : release_summary(releases.first)
 
-    [app, pending, release_summary(releases[active_index.to_i]) || '?', newest]
+    {
+      app: app,
+      pending: active_index.nil? ? "#{releases.size}+" : active_index.to_s,
+      active: release_summary(releases[active_index.to_i]) || '?',
+      last_pending: (release_summary(releases.first) unless active_index&.zero?)
+    }
   end
 
   # 'convox releases' leaves STATUS blank on most rows and CREATED has spaces
@@ -207,15 +210,21 @@ class Kmd < OpBase
     "#{release['ID']} #{release['DESCRIPTION'][0, 60]} (#{release['CREATED']})"
   end
 
-  def print_table(header, rows)
-    widths = header.each_index.map { |i| ([header] + rows).map { |row| row[i].size }.max }
-    format_row = ->(row) { row.each_with_index.map { |cell, i| cell.ljust(widths[i]) }.join('  ').rstrip }
+  # Each app's active release, and under it the newest release still waiting
+  # to be promoted, if any.
+  def print_pending_releases(rows)
+    app_width = rows.map { |row| row[:app].size }.max.to_i
+    pending_width = 'PENDING'.size
+    indent = ' ' * (3 + app_width + 2 + pending_width + 2)
 
     # The emojis are two columns wide, so the header is indented by three.
-    puts "   #{format_row.call(header)}".bold
+    puts "   #{'APP'.ljust(app_width)}  #{'PENDING'.ljust(pending_width)}  RELEASES".bold
     rows.each do |row|
-      line = format_row.call(row)
-      puts row[1].eql?('0') ? "✅ #{line}" : "⏳ #{line}".yellow
+      line = "#{row[:app].ljust(app_width)}  #{row[:pending].ljust(pending_width)}  active        #{row[:active]}"
+      next puts("✅ #{line}") if row[:pending].eql?('0')
+
+      puts "⏳ #{line}".yellow
+      puts "#{indent}last pending  #{row[:last_pending]}".yellow
     end
   end
 
