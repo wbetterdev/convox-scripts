@@ -212,21 +212,19 @@ class Kmd < OpBase
     "#{release['ID']} #{release['DESCRIPTION'][0, 60]} (#{release['CREATED']})"
   end
 
-  # Each app's newest release still waiting to be promoted, if any, and under
-  # it the active release.
+  # One line per app: its newest release waiting to be promoted, or its active
+  # release when nothing is waiting.
   def print_pending_releases(rows)
     app_width = rows.map { |row| row[:app].size }.max.to_i
     pending_width = 'PENDING'.size
-    indent = ' ' * (3 + app_width + 2 + pending_width + 2)
 
     # The emojis are two columns wide, so the header is indented by three.
-    puts "   #{'APP'.ljust(app_width)}  #{'PENDING'.ljust(pending_width)}  RELEASES".bold
+    puts "   #{'APP'.ljust(app_width)}  #{'PENDING'.ljust(pending_width)}  RELEASE".bold
     rows.each do |row|
       app_columns = "#{row[:app].ljust(app_width)}  #{row[:pending].ljust(pending_width)}"
-      next puts("✅ #{app_columns}  active        #{row[:active]}") if row[:pending].eql?('0')
+      next puts("✅ #{app_columns}  active   #{row[:active]}") if row[:pending].eql?('0')
 
-      puts "⏳ #{app_columns}  last pending  #{row[:last_pending]}".yellow
-      puts "#{indent}active        #{row[:active]}"
+      puts "⏳ #{app_columns}  pending  #{row[:last_pending]}".yellow
     end
   end
 
