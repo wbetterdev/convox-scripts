@@ -92,6 +92,12 @@ RELEASE_COLUMNS = %w[ID STATUS BUILD CREATED DESCRIPTION].freeze
 # The only rack 'promote pending' may promote on.
 PROMOTE_PENDING_RACK = 'waybetter/stagingv3'
 
+# Where each app's git clone lives, to look for migrations in pending releases.
+APP_REPOS_DIR = "#{Dir.home}/Work/wb-services"
+
+# Rails migrations. Sequelize apps name their folder in .sequelizerc.
+RAILS_MIGRATIONS_DIR = 'db/migrate'
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -194,8 +200,46 @@ class Kmd < OpBase
       newest_id: releases.first&.[]('ID'),
       pending: active_index.nil? ? "#{releases.size}+" : active_index.to_s,
       active: release_summary(releases[active_index.to_i]) || '?',
-      last_pending: (release_summary(releases.first) unless active_index&.zero?)
+      last_pending: (release_summary(releases.first) unless active_index&.zero?),
+      migrations: (pending_migrations(app, releases[active_index], releases.first) if active_index&.positive?)
     }
+  end
+
+  # The migrations added between the active release's commit and the newest
+  # release's commit, from the app's local clone. A string when it can't tell.
+  def pending_migrations(app, active, newest)
+    repo = "#{APP_REPOS_DIR}/#{app}"
+    return "no local clone at #{repo}" unless File.directory?("#{repo}/.git")
+
+    shas = [active, newest].map { |release| release_sha(release) }
+    return "can't read a commit from the release descriptions" unless shas.all?
+
+    dirs = migration_dirs(repo)
+    return [] if dirs.empty?
+
+    # Fetch only when a commit isn't in the clone yet.
+    system('git', '-C', repo, 'fetch', '-q', 'origin', out: File::NULL, err: File::NULL) unless shas.all? { |sha| git_commit?(repo, sha) }
+    return "commit #{shas.reject { |sha| git_commit?(repo, sha) }.join(', ')} not found in #{repo}" unless shas.all? { |sha| git_commit?(repo, sha) }
+
+    IO.popen(['git', '-C', repo, 'diff', '--name-only', '--diff-filter=A', *shas, '--', *dirs], &:read).lines.map(&:strip).sort
+  end
+
+  # Release descriptions start with the short commit, eg. '03ddc3548-develop-fix ...'.
+  def release_sha(release)
+    release['DESCRIPTION'][/\A\h{7,40}(?=-)/]
+  end
+
+  def git_commit?(repo, sha)
+    system('git', '-C', repo, 'cat-file', '-e', "#{sha}^{commit}", out: File::NULL, err: File::NULL)
+  end
+
+  def migration_dirs(repo)
+    dirs = [RAILS_MIGRATIONS_DIR].select { |dir| File.directory?("#{repo}/#{dir}") }
+    sequelizerc = "#{repo}/.sequelizerc"
+    return dirs unless File.file?(sequelizerc)
+
+    sequelize_dir = File.read(sequelizerc)[/["']?migrations-?[Pp]ath["']?\s*:\s*["']([^"']+)["']/, 1]
+    dirs + [sequelize_dir&.delete_prefix('./') || 'migrations']
   end
 
   # 'convox releases' leaves STATUS blank on most rows and CREATED has spaces
@@ -231,7 +275,14 @@ class Kmd < OpBase
       next puts("✅ #{app_columns}  active   #{row[:active]}") if row[:pending].eql?('0')
 
       puts "⏳ #{app_columns}  pending  #{row[:last_pending]}".yellow
+      print_migrations(row[:migrations])
     end
+  end
+
+  def print_migrations(migrations)
+    return puts("     ⚠️  migrations: #{migrations}".red) if migrations.is_a?(String)
+
+    migrations.to_a.each { |migration| puts "     🛠  migration #{migration}".red }
   end
 
   # 'promote' isn't in KMDS, so 'promote pending' is matched on the raw command.
@@ -251,9 +302,14 @@ class Kmd < OpBase
     print_pending_releases(rows)
 
     # A '5+' count means no active release was found, so it isn't promoted.
-    to_promote = rows.select { |row| row[:pending].match?(/\A\d+\z/) && row[:pending].to_i.positive? }
+    pending = rows.select { |row| row[:pending].match?(/\A\d+\z/) && row[:pending].to_i.positive? }
     skipped = rows.select { |row| row[:pending].end_with?('+') }
     puts "\nSkipping #{skipped.map { |row| row[:app] }.join(', ')}: no active release found".red if skipped.any?
+
+    # Releases with migrations, or whose migrations couldn't be checked, are
+    # left for a manual promote and migrate.
+    blocked, to_promote = pending.partition { |row| !row[:migrations].is_a?(Array) || row[:migrations].any? }
+    print_blocked_promotes(blocked)
     return puts("\nNothing to promote on #{rack}".green) if to_promote.empty?
 
     commands = to_promote.map { |row| "convox releases promote #{row[:newest_id]} --rack #{rack} --app #{row[:app]}" }
@@ -268,6 +324,16 @@ class Kmd < OpBase
       system(cmd)
     end
     puts(failed.empty? ? "\nPromoted #{commands.size} app(s)".green : "\nFailed:\n#{failed.join("\n")}".red)
+  end
+
+  def print_blocked_promotes(blocked)
+    return if blocked.empty?
+
+    puts "\nNot promoting, migrations pending:".bold.red
+    blocked.each do |row|
+      puts "  #{row[:app]}".red
+      print_migrations(row[:migrations])
+    end
   end
 
   protected
@@ -581,6 +647,7 @@ class Kmd < OpBase
 
          kmd promote pending -- stag all
            # => the 'releases pending' table, then promotes every app's newest release after one 'y'
+           # apps whose pending releases add Rails or Sequelize migrations are listed in red and not promoted
            # staging only; also works for one app, eg. 'kmd promote pending -- stag notify'
 
          kmd apps -- sta
