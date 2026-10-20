@@ -89,6 +89,9 @@ ALL_APPS_KMDS = %w[releases builds ps].freeze
 # Columns of the 'convox releases' table, as 'releases pending' reads them.
 RELEASE_COLUMNS = %w[ID STATUS BUILD CREATED DESCRIPTION].freeze
 
+# The only rack 'promote pending' may promote on.
+PROMOTE_PENDING_RACK = 'waybetter/stagingv3'
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -120,6 +123,8 @@ class Kmd < OpBase
   end
 
   def go(command:, args:)
+    return go_promote_pending if promote_pending?
+
     command_info, command_args = choose_command
     return go_pending_releases if pending_releases?(command_info, command_args)
     return go_all_apps(command_info, command_args) if all_apps?(command_info)
@@ -186,6 +191,7 @@ class Kmd < OpBase
 
     {
       app: app,
+      newest_id: releases.first&.[]('ID'),
       pending: active_index.nil? ? "#{releases.size}+" : active_index.to_s,
       active: release_summary(releases[active_index.to_i]) || '?',
       last_pending: (release_summary(releases.first) unless active_index&.zero?)
@@ -226,6 +232,42 @@ class Kmd < OpBase
 
       puts "⏳ #{app_columns}  pending  #{row[:last_pending]}".yellow
     end
+  end
+
+  # 'promote' isn't in KMDS, so 'promote pending' is matched on the raw command.
+  def promote_pending?
+    command.to_s.split.eql?(%w[promote pending])
+  end
+
+  # Prints the 'releases pending' table, then promotes every app's newest
+  # release after one confirmation. Staging only.
+  def go_promote_pending
+    add_rack([])
+    exit_with_error "promote pending only works on staging, not #{rack}" unless rack.eql?(PROMOTE_PENDING_RACK)
+
+    apps = app_filter.eql?('all') ? rack_apps : [choose_app]
+    rows = apps.map { |app| Thread.new { pending_release_row(app) } }.map(&:value)
+                .sort_by { |row| [-row[:pending].to_i, row[:app]] }
+    print_pending_releases(rows)
+
+    # A '5+' count means no active release was found, so it isn't promoted.
+    to_promote = rows.select { |row| row[:pending].match?(/\A\d+\z/) && row[:pending].to_i.positive? }
+    skipped = rows.select { |row| row[:pending].end_with?('+') }
+    puts "\nSkipping #{skipped.map { |row| row[:app] }.join(', ')}: no active release found".red if skipped.any?
+    return puts("\nNothing to promote on #{rack}".green) if to_promote.empty?
+
+    commands = to_promote.map { |row| "convox releases promote #{row[:newest_id]} --rack #{rack} --app #{row[:app]}" }
+    puts
+    commands.each { |cmd| puts cmd.green }
+    if confirm && !(cli.ask("Promote #{to_promote.size} app(s) on #{rack}? (enter 'y' to execute)") =~ /^y/)
+      return puts('Cancelled')
+    end
+
+    failed = commands.reject do |cmd|
+      puts "\n#{cmd.yellow}"
+      system(cmd)
+    end
+    puts(failed.empty? ? "\nPromoted #{commands.size} app(s)".green : "\nFailed:\n#{failed.join("\n")}".red)
   end
 
   protected
@@ -536,6 +578,10 @@ class Kmd < OpBase
          kmd releases pending -- stag all
            # => a table of every app's active release vs its newest release, and how many are pending promotion
            # also works for one app, eg. 'kmd releases pending -- stag notify'
+
+         kmd promote pending -- stag all
+           # => the 'releases pending' table, then promotes every app's newest release after one 'y'
+           # staging only; also works for one app, eg. 'kmd promote pending -- stag notify'
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
