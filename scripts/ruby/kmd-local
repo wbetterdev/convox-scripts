@@ -98,6 +98,13 @@ APP_REPOS_DIR = "#{Dir.home}/Work/wb-services"
 # Rails migrations. Sequelize apps name their folder in .sequelizerc.
 RAILS_MIGRATIONS_DIR = 'db/migrate'
 
+# The merge 'git flow release finish' makes on master, eg.
+# "Merge branch 'release/v20261020'" or "Merge branch 'release/v20261020a'".
+RELEASE_MERGE_SUBJECT = %r{\AMerge branch 'release/(v\d{8}\w*)'\z}
+
+# Commits a release adds itself, left out of release notes built from commits.
+RELEASE_OWN_COMMITS = /\A(Prep release|Update changelog|Merge )/
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -130,6 +137,7 @@ class Kmd < OpBase
 
   def go(command:, args:)
     return go_promote_pending if promote_pending?
+    return go_release_notes if release_notes?
 
     command_info, command_args = choose_command
     return go_pending_releases if pending_releases?(command_info, command_args)
@@ -334,6 +342,55 @@ class Kmd < OpBase
       puts "  #{row[:app]}".red
       print_migrations(row[:migrations])
     end
+  end
+
+  # 'release-notes' isn't in KMDS: it reads git, not convox.
+  def release_notes?
+    command.to_s.split.eql?(%w[release-notes])
+  end
+
+  # Today's releases, from the release merges on each app's master, formatted
+  # to paste into Slack. The rack is only there to match kk's other commands:
+  # releases are what git flow merged into master.
+  def go_release_notes
+    apps = app_filter.eql?('all') ? APPS.values.uniq : [choose_app]
+    notes = apps.map { |app| Thread.new { app_release_notes(app) } }.flat_map(&:value)
+    return puts('No releases today'.yellow) if notes.empty?
+
+    puts notes.join("\n\n")
+  end
+
+  # One note per release merged into the app's master today, oldest first.
+  # Apps without a local clone or a master branch (eg. wb-graphql-service,
+  # which releases from main) have none.
+  def app_release_notes(app)
+    repo = "#{APP_REPOS_DIR}/#{app}"
+    return [] unless File.directory?("#{repo}/.git")
+
+    system('git', '-C', repo, 'fetch', '-q', 'origin', '--tags', out: File::NULL, err: File::NULL)
+    merges = IO.popen(['git', '-C', repo, 'log', '--first-parent', '--merges', '--since=midnight',
+                       '--format=%H %s', 'origin/master'], err: File::NULL, &:read)
+
+    merges.lines.reverse.filter_map do |line|
+      sha, subject = line.chomp.split(' ', 2)
+      version = subject.to_s[RELEASE_MERGE_SUBJECT, 1]
+      next if version.nil?
+
+      "Released `#{app}` #{version.sub(/\Av(\d{4})(\d{2})(\d{2})/, 'v\\1-\\2-\\3')}\n" \
+        "```\n#{release_changes(repo, sha, version).join("\n")}\n```"
+    end
+  end
+
+  # The changelog lines of the release's tag, which keep any edits made to the
+  # prep PR's description. Without a tag, the subjects of the commits the
+  # release merged into master.
+  def release_changes(repo, merge_sha, version)
+    tag_message = IO.popen(['git', '-C', repo, 'tag', '-l', '--format=%(contents)', version], err: File::NULL, &:read)
+    changes = tag_message.lines.map(&:strip).grep(/\A- /)
+    return changes if changes.any?
+
+    IO.popen(['git', '-C', repo, 'log', '--no-merges', '--format=%s', "#{merge_sha}^1..#{merge_sha}^2"], err: File::NULL, &:read)
+      .lines.map(&:strip).grep_v(RELEASE_OWN_COMMITS).map { |subject| "- #{subject}" }
   end
 
   protected
@@ -649,6 +706,11 @@ class Kmd < OpBase
            # => the 'releases pending' table, then promotes every app's newest release after one 'y'
            # apps whose pending releases add Rails or Sequelize migrations are listed in red and not promoted
            # staging only; also works for one app, eg. 'kmd promote pending -- stag notify'
+
+         kmd release-notes -- prod all
+           # => today's releases of every app, from the 'release/vYYYYMMDD' merges on its master in
+           # ~/Work/wb-services/<app>, ready to paste into Slack; the changelog comes from the release's tag
+           # also works for one app, eg. 'kmd release-notes -- prod notify'
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
