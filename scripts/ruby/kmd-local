@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'open3'
 require 'pry'
 require 'highline'
 require 'colored'
@@ -98,6 +99,23 @@ APP_REPOS_DIR = "#{Dir.home}/Work/wb-services"
 # Rails migrations. Sequelize apps name their folder in .sequelizerc.
 RAILS_MIGRATIONS_DIR = 'db/migrate'
 
+# What 'migrate status' runs in each app's web service ('convox run web'),
+# by the kind of migrations its local clone has. Both read the database's
+# migrations table and print one 'up'/'down' line per migration, in the
+# environment the rack gives the app (RAILS_ENV, NODE_ENV).
+MIGRATE_STATUS_COMMANDS = {
+  rails: 'bundle exec rails db:migrate:status',
+  sequelize: './node_modules/.bin/sequelize db:migrate:status'
+}.freeze
+
+# A migration's line in either command's output:
+#   Rails:     '   up     20261026120000  Add waiting to supercharger host members'
+#   Sequelize: 'up 20261025120000-account-merge.js'
+MIGRATION_STATUS_LINE = /\A\s*(up|down)\s+(\d\S*)(.*)\z/.freeze
+
+# Racks whose commands are shown in bold red before confirming.
+PRODUCTION_RACKS = %w[waybetter/production waybetter/productionv3 waybetter/prd-west].freeze
+
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
   'production' => 'prod-west'
@@ -130,6 +148,7 @@ class Kmd < OpBase
 
   def go(command:, args:)
     return go_promote_pending if promote_pending?
+    return go_migrate_status if migrate_status?
 
     command_info, command_args = choose_command
     return go_pending_releases if pending_releases?(command_info, command_args)
@@ -336,6 +355,94 @@ class Kmd < OpBase
     end
   end
 
+  # 'migrate' isn't in KMDS, so 'migrate status' is matched on the raw command.
+  def migrate_status?
+    command.to_s.split.eql?(%w[migrate status])
+  end
+
+  # Runs each app's migration status command in its web service (one
+  # 'convox run' per app, in parallel, after one confirmation) and shows
+  # whether its latest migration is up. Read only: it never migrates.
+  def go_migrate_status
+    add_rack([])
+    apps = app_filter.eql?('all') ? rack_apps : [choose_app]
+    kinds = apps.to_h { |app| [app, migrations_kind(app)] }
+    checks = kinds.select { |_app, kind| kind.is_a?(Symbol) }
+    skipped = kinds.reject { |_app, kind| kind.is_a?(Symbol) }
+    return print_migrate_status(skipped_migrate_rows(skipped)) if checks.empty?
+
+    commands = checks.to_h { |app, kind| [app, migrate_status_command(app, kind)] }
+    puts
+    commands.each_value { |cmd| puts(production? ? cmd.bold.red : cmd.green) }
+    question = "Read the migration status of #{commands.size} app(s) on #{rack}? (enter 'y' to execute)"
+    return puts('Cancelled') if confirm && cli.ask(question) !~ /^y/
+
+    puts "\nRunning #{commands.size} one-off process(es), this takes a minute...".yellow
+    rows = commands.map { |app, cmd| Thread.new { migrate_status_row(app, cmd) } }.map(&:value)
+    print_migrate_status(rows + skipped_migrate_rows(skipped))
+  end
+
+  # :rails or :sequelize, from the app's local clone; a string saying why
+  # it isn't checked otherwise.
+  def migrations_kind(app)
+    repo = "#{APP_REPOS_DIR}/#{app}"
+    return "no local clone at #{repo}" unless File.directory?(repo)
+    return :rails if File.directory?("#{repo}/#{RAILS_MIGRATIONS_DIR}")
+    return :sequelize if File.file?("#{repo}/.sequelizerc")
+
+    'no migrations'
+  end
+
+  def migrate_status_command(app, kind)
+    "convox run web \"#{MIGRATE_STATUS_COMMANDS[kind]}\" --rack #{rack} --app #{app}"
+  end
+
+  # The app's latest migration (by id, which starts with its timestamp) and
+  # how many are down, or what the command printed when no migration line
+  # could be read from it.
+  def migrate_status_row(app, cmd)
+    output, status = Open3.capture2e(cmd, stdin_data: '')
+    migrations = output.lines.filter_map do |line|
+      match = line.chomp.match(MIGRATION_STATUS_LINE)
+      { status: match[1], id: match[2], name: "#{match[2]} #{match[3].strip}".strip } if match
+    end
+    if migrations.empty?
+      last_lines = output.lines.map(&:strip).reject(&:empty?).last(3).join(' | ')
+      return { app: app, state: :error, detail: "no migrations read (exit #{status.exitstatus}): #{last_lines}" }
+    end
+
+    latest = migrations.max_by { |migration| migration[:id] }
+    down = migrations.count { |migration| migration[:status].eql?('down') }
+    { app: app, state: latest[:status].eql?('up') ? :up : :down, latest: latest[:name], down: down }
+  end
+
+  def skipped_migrate_rows(skipped)
+    skipped.map { |app, reason| { app: app, state: :skipped, detail: reason } }
+  end
+
+  # One line per app, problems first: its latest migration and whether it's
+  # up, how many migrations are down, or why it wasn't read.
+  def print_migrate_status(rows)
+    order = %i[down error up skipped]
+    rows = rows.sort_by { |row| [order.index(row[:state]), row[:app]] }
+    app_width = rows.map { |row| row[:app].size }.max.to_i
+
+    # The emojis are two columns wide, so the header is indented by three.
+    puts "\n   #{'APP'.ljust(app_width)}  LATEST MIGRATION".bold
+    rows.each { |row| puts migrate_status_line(row, app_width) }
+  end
+
+  def migrate_status_line(row, app_width)
+    app = row[:app].ljust(app_width)
+    down = " (#{row[:down]} down)" if row[:down].to_i.positive?
+    case row[:state]
+    when :up then "✅ #{app}  up    #{row[:latest]}#{down}".then { |line| down ? line.yellow : line }
+    when :down then "❌ #{app}  DOWN  #{row[:latest]}#{down}".red
+    when :error then "⚠️  #{app}  #{row[:detail]}".red
+    else "·  #{app}  #{row[:detail]}"
+    end
+  end
+
   protected
 
   attr_accessor :command, :rack_filter, :app_filter, :confirm, :service_filter,
@@ -346,7 +453,7 @@ class Kmd < OpBase
       exit_with_error 'Could not determine rack'
     else
       expanded_command << "--rack #{rack}"
-      @production = %w[waybetter/production waybetter/prd-west].include?(rack)
+      @production = PRODUCTION_RACKS.include?(rack)
     end
   end
 
@@ -649,6 +756,12 @@ class Kmd < OpBase
            # => the 'releases pending' table, then promotes every app's newest release after one 'y'
            # apps whose pending releases add Rails or Sequelize migrations are listed in red and not promoted
            # staging only; also works for one app, eg. 'kmd promote pending -- stag notify'
+
+         kmd migrate status -- stag all
+           # => for every app on the rack with Rails or Sequelize migrations (from its local clone in ~/Work/wb-services),
+           #    runs 'convox run web "bundle exec rails db:migrate:status"' (or 'sequelize db:migrate:status') after one 'y',
+           #    and shows whether its latest migration is up, and how many are down
+           # read only; also works for one app, eg. 'kmd migrate status -- prod notify'
 
          kmd apps -- sta
            # => convox apps --rack waybetter/staging
