@@ -101,8 +101,9 @@ RAILS_MIGRATIONS_DIR = 'db/migrate'
 
 # What 'migrate status' runs in each app's web service ('convox run web'),
 # by the kind of migrations its local clone has. Both read the database's
-# migrations table and print one 'up'/'down' line per migration, in the
-# environment the rack gives the app (RAILS_ENV, NODE_ENV).
+# migrations table and print one 'up'/'down' line per migration. Sequelize
+# runs in the NODE_ENV the rack gives the app; Rails needs RAILS_ENV
+# (RAILS_ENVS), which a one-off process doesn't get.
 MIGRATE_STATUS_COMMANDS = {
   rails: 'bundle exec rails db:migrate:status',
   sequelize: './node_modules/.bin/sequelize db:migrate:status'
@@ -115,6 +116,13 @@ MIGRATION_STATUS_LINE = /\A\s*(up|down)\s+(\d\S*)(.*)\z/.freeze
 
 # Racks whose commands are shown in bold red before confirming.
 PRODUCTION_RACKS = %w[waybetter/production waybetter/productionv3 waybetter/prd-west].freeze
+
+# The RAILS_ENV 'migrate status' gives Rails apps on each rack; none on a
+# rack that isn't listed (eg. local).
+RAILS_ENVS = {
+  'waybetter/stagingv3' => 'staging',
+  **PRODUCTION_RACKS.to_h { |production_rack| [production_rack, 'production'] }
+}.freeze
 
 PAPERTRAIL_GROUPS = {
   'staging' => 'staging-west',
@@ -393,8 +401,11 @@ class Kmd < OpBase
     'no migrations'
   end
 
+  # 'env' sets RAILS_ENV whether or not convox runs the command in a shell.
   def migrate_status_command(app, kind)
-    "convox run web \"#{MIGRATE_STATUS_COMMANDS[kind]}\" --rack #{rack} --app #{app}"
+    status_command = MIGRATE_STATUS_COMMANDS[kind]
+    status_command = "env RAILS_ENV=#{RAILS_ENVS[rack]} #{status_command}" if kind.eql?(:rails) && RAILS_ENVS.key?(rack)
+    "convox run web \"#{status_command}\" --rack #{rack} --app #{app}"
   end
 
   # The app's latest migration (by id, which starts with its timestamp) and
@@ -759,7 +770,8 @@ class Kmd < OpBase
 
          kmd migrate status -- stag all
            # => for every app on the rack with Rails or Sequelize migrations (from its local clone in ~/Work/wb-services),
-           #    runs 'convox run web "bundle exec rails db:migrate:status"' (or 'sequelize db:migrate:status') after one 'y',
+           #    runs 'convox run web "env RAILS_ENV=staging bundle exec rails db:migrate:status"' (RAILS_ENV=production on
+           #    production; or 'sequelize db:migrate:status') after one 'y',
            #    and shows whether its latest migration is up, and how many are down
            # read only; also works for one app, eg. 'kmd migrate status -- prod notify'
 
